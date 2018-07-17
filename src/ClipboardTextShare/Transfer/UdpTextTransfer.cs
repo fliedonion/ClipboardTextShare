@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace ClipboardTextShare.Transfer
 {
     class UdpTextTransfer : IDisposable
     {
+        private Logger logger;
 
         private UdpClient udpClient;
         private IPEndPoint remoteEndPoint;
@@ -33,6 +35,7 @@ namespace ClipboardTextShare.Transfer
             udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             udpClient.Client.Bind(localEndPoint);
 
+            logger = LogManager.GetCurrentClassLogger();
             StartRecieving();
         }
 
@@ -60,8 +63,7 @@ namespace ClipboardTextShare.Transfer
                 bytes = udpClient.EndReceive(ar, ref remote);
             }
             catch (SocketException se) {
-                // TODO: logging
-                Debug.Print(se.ToString());
+                logger.Error(se);
                 return;
             }
             catch (ObjectDisposedException ex) {
@@ -78,8 +80,8 @@ namespace ClipboardTextShare.Transfer
                             TextRecieved(this, new TextRecvEventArgs(gotString));
                         }
                     }
-                    catch (Exception) {
-                        // todo: logging
+                    catch (Exception ex) {
+                        logger.Error(ex);
                     }
                 });
             }
@@ -99,8 +101,7 @@ namespace ClipboardTextShare.Transfer
                     udpClient.Client.Dispose();
                 }
                 catch (Exception ex) {
-                    // TODO: logging
-                    Debug.Print(ex.ToString());
+                    logger.Error(ex);
                 }
             }
         }

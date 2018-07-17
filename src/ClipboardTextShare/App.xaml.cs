@@ -1,6 +1,7 @@
 ﻿using ClipboardTextShare.ClipboardMonitor;
 using ClipboardTextShare.Transfer;
 using ClipboardTextShare.TrayIcon;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -20,13 +21,19 @@ namespace ClipboardTextShare {
     /// </summary>
     public partial class App : Application {
 
+        private Logger logger;
+
         private NotifyIconWrapper notifyIcon;
         private ClipboardViewer cv;
         private UdpTextTransfer udp;
 
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
+            logger = LogManager.GetCurrentClassLogger();
+
             Application.Current.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
+
+            logger.Info("Startup");
 
             notifyIcon = new NotifyIconWrapper();
 
@@ -46,8 +53,8 @@ namespace ClipboardTextShare {
                 ClipboardTextWriter.SetText(text);
             }
             catch (Exception ex) {
-                // TODO: logging
-                Debug.Print(ex.ToString());
+                logger.Error(ex);
+
                 if (Debugger.IsAttached) {
                     throw;
                 }
@@ -59,8 +66,8 @@ namespace ClipboardTextShare {
                 udp.Send(ev.Text);
             }
             catch (Exception ex) {
-                // TODO: logging
-                Debug.Print(ex.ToString());
+                logger.Error(ex);
+
                 if (Debugger.IsAttached) {
                     throw;
                 }
