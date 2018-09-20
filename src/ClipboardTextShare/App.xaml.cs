@@ -9,12 +9,14 @@ using System.Configuration;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Shapes;
 
 namespace ClipboardTextShare {
     /// <summary>
@@ -25,7 +27,7 @@ namespace ClipboardTextShare {
         private Logger logger;
 
         private NotifyIconWrapper notifyIcon;
-        private ClipboardViewer cv;
+        private ClipboardListener cbListener;
         private UdpTextTransfer udp;
 
         const int DefaultPort = 51871;
@@ -73,12 +75,18 @@ namespace ClipboardTextShare {
 
             notifyIcon = new NotifyIconWrapper();
 
-            udp = new UdpTextTransfer(options.LocalIp, options.RemoteIp, options.Port);
-            udp.TextRecieved += udp_TextRecieved;
-
-            cv = new ClipboardViewer();
-            cv.TextCopied += cv_TextCopied;
-            cv.Init(GetMainWindowHandle());
+            if (options.RemoteIp != IPAddress.Parse("127.0.0.1")) {
+                udp = new UdpTextTransfer(options.LocalIp, options.RemoteIp, options.Port);
+                udp.TextRecieved += udp_TextRecieved;
+            }
+            
+            cbListener = new ClipboardListener(GetMainWindowHandle());
+            if (cbListener.IsReady) {
+                cbListener.Subscribe(TextCopied);
+                if (Debugger.IsAttached) {
+                    cbListener.Subscribe(DebugOut);
+                }
+            }
         }
 
         private OptionEntity ParseArgs(string[] args, OptionEntity defaultValues){
@@ -119,8 +127,6 @@ namespace ClipboardTextShare {
         }
 
 
-
-
         void udp_TextRecieved(object sender, TextRecvEventArgs ev) {
 
             var text = ev.Text;
@@ -136,9 +142,9 @@ namespace ClipboardTextShare {
             }
         }
 
-        void cv_TextCopied(object sender, TextCopiedEventArgs ev) {
+        void TextCopied(string value) {
             try {
-                udp.Send(ev.Text);
+                if(!string.IsNullOrEmpty(value)) udp.Send(value);
             }
             catch (Exception ex) {
                 logger.Error(ex);
@@ -149,12 +155,26 @@ namespace ClipboardTextShare {
             }
         }
 
+        void DebugOut(string value) {
+
+            var path =
+                System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(), "ClipboardTextShare.log");
+
+            using (var sw = File.AppendText(path)) {
+                sw.WriteLine(string.Format("[{0}] {1}", DateTime.Now.ToString(), value ?? ""));
+            }
+        }
+
 
         protected override void OnExit(ExitEventArgs e) {
             base.OnExit(e);
-            
-            notifyIcon.Dispose();
-            cv.Dispose();
+            if (notifyIcon != null) {
+                notifyIcon.Dispose();
+            }
+            if (cbListener != null) {
+                cbListener.Dispose();
+            }
         }
 
         private IntPtr GetMainWindowHandle() {

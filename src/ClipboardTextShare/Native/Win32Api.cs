@@ -19,5 +19,15 @@ namespace ClipboardTextShare.Native {
         [DllImport("user32")]
         internal extern static int SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool AddClipboardFormatListener(IntPtr hwnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+        internal const int WM_CLIPBOARDUPDATE = 0x031D;
+
     }
 }

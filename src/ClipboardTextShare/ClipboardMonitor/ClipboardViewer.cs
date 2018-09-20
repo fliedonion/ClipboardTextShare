@@ -12,6 +12,7 @@ namespace ClipboardTextShare.ClipboardMonitor {
     [System.Security.Permissions.PermissionSet(
             System.Security.Permissions.SecurityAction.Demand,
             Name = "FullTrust")]
+    [Obsolete("User ClipboardListener instead.", true)]
     public class ClipboardViewer : IDisposable {
 
         private bool isHandling = false;
